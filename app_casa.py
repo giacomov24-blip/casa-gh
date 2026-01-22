@@ -1,8 +1,91 @@
 import streamlit as st
 import pandas as pd
-import os
-from datetime import datetime, date
-import streamlit.components.v1 as components
+from streamlit_gsheets import GSheetsConnection
+from datetime import datetime
+
+# Configurazione Pagina
+st.set_page_config(page_title="Hub Casa G&H", layout="centered")
+
+# --- CONNESSIONE GOOGLE SHEETS ---
+# Sostituisci questo URL con il link "Condividi" del tuo foglio Google (impostato su "Chiunque abbia il link può modificare")
+URL_FOGLIO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRUUlWdGC-V38_PbOTcfyom3wT4Ez9oeuv3hh8DeXnOvBa_mHbiTNPRaKeqfYeIPdOq2vJytWubXp9Q/pubhtml"
+
+conn = st.connection("gsheets", type=GSheetsConnection)
+
+def carica_dati():
+    return conn.read(spreadsheet=URL_FOGLIO, worksheet="spesa")
+
+def salva_dati(df):
+    conn.update(spreadsheet=URL_FOGLIO, worksheet="spesa", data=df)
+    st.cache_data.clear()
+
+# --- LOGIN ---
+if 'autenticato' not in st.session_state:
+    st.session_state['autenticato'] = False
+
+if not st.session_state['autenticato']:
+    st.title("🔐 Accesso Hub Casa")
+    password = st.text_input("Inserisci Password", type="password")
+    if st.button("Entra"):
+        if password == "gh2026":
+            st.session_state['autenticato'] = True
+            st.rerun()
+        else:
+            st.error("Password errata")
+else:
+    # --- INTERFACCIA APP ---
+    st.title("🏠 Hub Casa Giacomo & Helen")
+    
+    tab1, tab2 = st.tabs(["🛒 Spesa", "📝 Note"])
+
+    with tab1:
+        st.header("Lista della Spesa")
+        
+        # Caricamento dati da Google Sheets
+        try:
+            df_spesa = carica_dati()
+        except:
+            df_spesa = pd.DataFrame(columns=["Elemento", "Categoria", "Data"])
+
+        # Form per aggiungere elementi
+        with st.form("nuovo_elemento"):
+            nuovo_item = st.text_input("Cosa manca?")
+            categoria = st.selectbox("Categoria", ["Alimentari", "Casa", "Animali", "Altro"])
+            if st.form_submit_button("Aggiungi alla lista"):
+                nuova_riga = pd.DataFrame({
+                    "Elemento": [nuovo_item],
+                    "Categoria": [categoria],
+                    "Data": [datetime.now().strftime("%d/%m/%Y")]
+                })
+                df_spesa = pd.concat([df_spesa, nuova_riga], ignore_index=True)
+                salva_dati(df_spesa)
+                st.success(f"{nuovo_item} aggiunto!")
+                st.rerun()
+
+        # Visualizzazione lista
+        if not df_spesa.empty:
+            st.write("---")
+            for i, row in df_spesa.iterrows():
+                col1, col2 = st.columns([4, 1])
+                col1.write(f"**{row['Elemento']}** ({row['Categoria']})")
+                if col2.button("🗑️", key=f"del_{i}"):
+                    df_spesa = df_spesa.drop(i)
+                    salva_dati(df_spesa)
+                    st.rerun()
+        else:
+            st.info("La lista è vuota!")
+
+    with tab2:
+        st.header("Bacheca Note")
+        st.write("Funzione note in arrivo...")
+
+# --- STILE DARK ---
+st.markdown("""
+    <style>
+    .stApp { background-color: #0e1117; color: white; }
+    button { border-radius: 10px !important; }
+    </style>
+    """, unsafe_allow_html=True)
 
 # --- 1. CONFIGURAZIONE E STILE DARK ---
 st.set_page_config(page_title="G&H Family Hub", page_icon="🏠", layout="centered")
@@ -230,3 +313,4 @@ with tabs[7]:
         if st.button("Versa", key=f"br_{i}"):
             st.session_state.risparmi[i]['risparmiato'] += add_r
             salva_dati('risparmi.csv', st.session_state.risparmi); st.rerun()
+
