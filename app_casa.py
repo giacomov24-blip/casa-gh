@@ -9,8 +9,7 @@ import os
 st.set_page_config(page_title="G&H Family Hub", page_icon="🏠", layout="centered")
 
 # URL del tuo Google Sheets (già inserito quello che hai postato)
-URL_FOGLIO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRUUlWdGC-V38_PbOTcfyom3wT4Ez9oeuv3hh8DeXnOvBa_mHbiTNPRaKeqfYeIPdOq2vJytWubXp9Q/pubhtml"
-
+URL_FOGLIO = "https://docs.google.com/spreadsheets/d/1W-bkKWbTANZOO1033m81A8VeM2nurAE9FM3aqL4Qvqk/edit?usp=sharing"
 # Connessione al Database Google
 conn = st.connection("gsheets", type=GSheetsConnection)
 
@@ -124,3 +123,4 @@ with tabs[5]:
     st.info("Tieni d'occhio i pagamenti.")
 
 # (Le altre sezioni rimangono come struttura per ora)
+
